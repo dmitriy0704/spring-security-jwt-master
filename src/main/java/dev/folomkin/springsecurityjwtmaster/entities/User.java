@@ -17,13 +17,13 @@ public class User {
 
 
     @Column(name = "username")
-    private Integer username;
+    private String username;
 
     @Column(name = "password")
-    private Integer password;
+    private String password;
 
     @Column(name = "email")
-    private Integer email;
+    private String email;
 
 
     @ManyToMany

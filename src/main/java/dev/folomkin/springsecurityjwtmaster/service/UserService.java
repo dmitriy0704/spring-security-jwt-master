@@ -1,8 +1,10 @@
 package dev.folomkin.springsecurityjwtmaster.service;
 
+import dev.folomkin.springsecurityjwtmaster.dtos.RegistrationUserDto;
 import dev.folomkin.springsecurityjwtmaster.entities.User;
 import dev.folomkin.springsecurityjwtmaster.repositories.RoleRepository;
 import dev.folomkin.springsecurityjwtmaster.repositories.UserRepository;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -16,14 +18,27 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@AllArgsConstructor
 public class UserService implements UserDetailsService {
     private UserRepository userRepository;
-    private RoleRepository roleRepository;
+    private RoleService roleService;
+    private PasswordEncoder passwordEncoder;
 
     @Autowired
     public void setUserRepository(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
+
+    @Autowired
+    public void setRoleService(RoleService roleService) {
+        this.roleService = roleService;
+    }
+
+    @Autowired
+    public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
+        this.passwordEncoder = passwordEncoder;
+    }
+
 
     public Optional<User> findByUsername(String username) {
         return userRepository.findByUsername(username);
@@ -42,8 +57,12 @@ public class UserService implements UserDetailsService {
         );
     }
 
-    public void createNewUser(User user) {
-        user.setRoles(List.of(roleRepository.findByName("ROLE_USER").get()));
-        userRepository.save(user);
+    public User createNewUser(RegistrationUserDto registrationUserDto) {
+        User user = new User();
+        user.setUsername(registrationUserDto.getUsername());
+        user.setPassword(passwordEncoder.encode(registrationUserDto.getPassword()));
+        user.setEmail(registrationUserDto.getEmail());
+        user.setRoles(List.of(roleService.getUserRole()));
+        return userRepository.save(user);
     }
 }

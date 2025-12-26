@@ -28,13 +28,22 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 @RequiredArgsConstructor
 @EnableMethodSecurity(securedEnabled = true)
 public class SecurityConfig {
-    private final UserService userService;
-private final JwtRequestFilter jwtRequestFilter;
+    private UserService userService;
+    private JwtRequestFilter jwtRequestFilter;
 
+    @Autowired
+    public void setUserService(UserService userService) {
+        this.userService = userService;
+    }
+
+    @Autowired
+    public void setJwtRequestFilter(JwtRequestFilter jwtRequestFilter) {
+        this.jwtRequestFilter = jwtRequestFilter;
+    }
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors-> cors.disable())
+                .cors(cors -> cors.disable())
                 .csrf(csrf -> csrf.disable())
                 .headers(headers ->
                         headers.frameOptions(frame -> frame.sameOrigin()))

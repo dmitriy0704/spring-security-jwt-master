@@ -2,6 +2,7 @@ package dev.folomkin.springsecurityjwtmaster.config;
 
 
 import dev.folomkin.springsecurityjwtmaster.service.UserService;
+import dev.folomkin.springsecurityjwtmaster.utils.JwtTokenUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -18,6 +19,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
 
@@ -27,23 +29,25 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 @EnableMethodSecurity(securedEnabled = true)
 public class SecurityConfig {
     private final UserService userService;
-
+private final JwtRequestFilter jwtRequestFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.cors(Customizer.withDefaults())
-                .csrf(Customizer.withDefaults())
+        http
+                .cors(cors-> cors.disable())
+                .csrf(csrf -> csrf.disable())
+                .headers(headers ->
+                        headers.frameOptions(frame -> frame.sameOrigin()))
                 .authorizeHttpRequests(request ->
                         request
                                 .requestMatchers("/secured").authenticated()
                                 .requestMatchers("/info").authenticated()
                                 .requestMatchers("/admin").hasRole("ADMIN")
-                                .anyRequest()
-                                .permitAll())
-                .sessionManagement(manager -> manager.sessionCreationPolicy(STATELESS))
+                                .anyRequest().permitAll())
                 .exceptionHandling(handling ->
                         handling.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
-                );
+                )
+                .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 

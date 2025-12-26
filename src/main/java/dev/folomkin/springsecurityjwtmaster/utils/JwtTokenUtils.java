@@ -1,14 +1,14 @@
 package dev.folomkin.springsecurityjwtmaster.utils;
 
 import dev.folomkin.springsecurityjwtmaster.entities.Role;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
-
+import io.jsonwebtoken.security.Keys;
+import java.nio.charset.StandardCharsets;
+import javax.crypto.SecretKey;
 import javax.xml.crypto.Data;
 import java.time.Duration;
 import java.time.Instant;
@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Component
-public class JwtTokenUtils {
+public class JwtTokenUtils { //-> "JwtTokenProvider"
 
     @Value("${jwt.secret}")
     private String secret;
@@ -41,11 +41,11 @@ public class JwtTokenUtils {
         Date expiryDate = Date.from(expiredDate);
 
         return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(userDetails.getUsername())
-                .setIssuedAt(Date.from(issuedDate))
-                .setExpiration(expiryDate)
-                .signWith(SignatureAlgorithm.HS256, secret)
+                .claims(claims)
+                .subject(userDetails.getUsername())
+                .issuedAt(Date.from(issuedDate))
+                .expiration(expiryDate)
+                .signWith(Keys.hmacShaKeyFor(secret.getBytes()))
                 .compact();
     }
 
@@ -57,11 +57,23 @@ public class JwtTokenUtils {
         return getAllClaimsFromToken(token).get("roles", List.class);
     }
 
+    // => Новая версия
     public Claims getAllClaimsFromToken(String token) {
-        return Jwts
-                .parser()
-                .setSigningKey(secret)
-                .parseClaimsJwt(token)
-                .getBody();
+        // Создаем SecretKey из секрета (для HS256)
+        SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+
+        // Строим парсер
+        JwtParser parser = Jwts.parser()
+                .verifyWith(key)  // Верификация подписи (для JWS)
+                .build();
+
+        try {
+            // Парсим как signed JWT (JWS)
+            Jws<Claims> jws = parser.parseSignedClaims(token);
+            return jws.getPayload();  // Возвращаем claims (body)
+        } catch (JwtException e) {
+            // Обработка ошибок: неверный токен, истекший, подделка и т.д.
+            throw new IllegalArgumentException("Invalid JWT token: " + e.getMessage());
+        }
     }
 }

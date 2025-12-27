@@ -22,5 +22,5 @@ spring:
       settings:
         web-allow-others: false
       path: /h2-console
-  main:
-    allow-circular-references: true
+#  main:
+#    allow-circular-references: true
